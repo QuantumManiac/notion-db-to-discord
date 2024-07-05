@@ -26,7 +26,6 @@ jobs:
                         username: ${{ secrets.USERNAME }}
                         key: ${{ secrets.KEY }}
                         script: |
-                            cd ${{ secrets.TARGET }}
                             pip install -r requirements.txt
-                            tmux kill-session -t notion-discord-webhook || true
-                            RUNNER_TRACKING_ID="" && tmux new-session -d -s notion-discord-webhook "./start.sh"
+                            pkill -f "python ${{ secrets.TARGET }}/main.py"
+                            ${{ secrets.TARGET }}/start.sh &
