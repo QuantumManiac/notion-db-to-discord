@@ -26,6 +26,7 @@ jobs:
                         username: ${{ secrets.USERNAME }}
                         key: ${{ secrets.KEY }}
                         script: |
+                            cd ${{ secrets.TARGET }}
                             pip install -r requirements.txt
                             pkill -f "python ${{ secrets.TARGET }}/main.py"
-                            ${{ secrets.TARGET }}/start.sh &
+                            ./start.sh &
