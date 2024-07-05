@@ -42,7 +42,7 @@ def main():
             send_message(message)
             prev_state = new_state
 
-        sleep(int(os.environ["NOTION_POLLING_INTERVAL_SECONDS"]))
+        sleep(int(os.environ.get("NOTION_POLLING_INTERVAL_SECONDS", 60)))
 
 if __name__ == "__main__":
     main()
