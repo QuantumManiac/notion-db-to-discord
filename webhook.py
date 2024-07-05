@@ -3,10 +3,6 @@ import os
 from dataclasses import dataclass
 from typing import Dict, Any, List, TypedDict
 
-WEBHOOK_USERNAME = "Webhook"
-WEBHOOK_AVATAR_URL = "https://i.imgur.com/4M34hi2.png"
-
-
 @dataclass
 class WebhookEmbed():
     """Represents an embed in a Discord webhook message
@@ -31,8 +27,8 @@ class WebhookMessage():
     """Represents a Discord webhook message
     """
     embeds: List[WebhookEmbed]
-    username: str = WEBHOOK_USERNAME
-    avatar_url: str = WEBHOOK_AVATAR_URL
+    username: str = os.environ['WEBHOOK_USERNAME']
+    avatar_url: str = os.environ['WEBHOOK_AVATAR_URL']
 
     def to_json(self) -> Dict[str, Any]:
         json = {
