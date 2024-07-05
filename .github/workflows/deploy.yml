@@ -1,0 +1,32 @@
+name: Deploy
+
+on:
+    push:
+        branches: [main]
+
+jobs:
+    deploy:
+        name: Deploy to Server
+        runs-on: ubuntu-latest
+        steps:
+                - name: Checkout code
+                  uses: actions/checkout@v3
+                - name: Copy files to the server
+                  uses: appleboy/scp-action@master
+                  with:
+                        host: ${{ secrets.HOST }}
+                        username: ${{ secrets.USERNAME }}
+                        key: ${{ secrets.KEY }}
+                        source: "."
+                        target: "${{ secrets.TARGET }}"
+                - name: install packages and (re)start
+                  uses: appleboy/ssh-action@master
+                  with:
+                        host: ${{ secrets.HOST }}
+                        username: ${{ secrets.USERNAME }}
+                        key: ${{ secrets.KEY }}
+                        script: |
+                            cd ${{ secrets.TARGET }}
+                            pip install -r requirements.txt
+                            tmux kill-session -t notion-discord-webhook || true
+                            tmux new-session -d -s notion-discord-webhook "./start.sh"
