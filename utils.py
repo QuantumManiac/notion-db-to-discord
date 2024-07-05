@@ -1,7 +1,8 @@
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any, Literal
 from classes import Page, ChangeSet, PropertyChange, Property
 from property_parsers import parse_properties
 from dictdiffer import diff
+from collections import defaultdict
 
 def parse_db_query_response(data: Dict[str, Any]) -> Dict[str, Page]:
     """Parses the response of a database query from Notion into a dictionary of page objects, 
@@ -30,6 +31,7 @@ def parse_page_data(page_data: Dict[str, Any]) -> Page:
         A Page object containing the parsed data of the Notion page
     """    
     properties = page_data["properties"]
+    
     res = Page(
         page_id=page_data["id"],
         created_time=page_data["created_time"],
@@ -50,8 +52,8 @@ def identify_changes(old_data: Dict[str, Page], new_data: Dict[str, Page]) -> Ch
     Returns:
         The changes between the two sets of pages
     """
-    delta_list = diff(old_data, new_data, ignore=set(["last_edited_time"]))
-    changeset = parse_diff(delta_list)
+    delta_list = diff(old_data, new_data)
+    changeset = parse_diff(new_data, delta_list)
     return changeset
 
 
@@ -86,7 +88,7 @@ def generate_id_title_mappings(old_data: Dict[str, Page], new_data: Dict[str, Pa
     combined_mappings = old_mapping | new_mapping
     return combined_mappings
     
-def parse_diff(diff: List[Tuple]) -> ChangeSet:   
+def parse_diff(data: Dict[str, Page], diff: List[Tuple]) -> ChangeSet:   
     """Parses a generated diff into a ChangeSet
 
     Args:
@@ -98,14 +100,18 @@ def parse_diff(diff: List[Tuple]) -> ChangeSet:
     res = ChangeSet(
         added=[],
         removed=[],
-        changed={}
+        changed=[]
     ) 
 
+    changes: Dict[str, List[PropertyChange]] = defaultdict(list) # A dictionary that maps the page_id to the list of changes
+
+    change_type: Literal["add", "remove", "change"]
+    change_key: str
     for change_type, change_key, change_value in diff:
         if change_type == 'add' and change_key == '': # Additions are only considering added pages
-            res["added"] = parse_add_or_remove(change_value)
+            res.added = parse_add_or_remove(change_value)
         elif change_type == 'remove' and change_key == '': # Removals are only considering removed pages
-            res["removed"] = parse_add_or_remove(change_value)
+            res.removed = parse_add_or_remove(change_value) 
         elif change_type == 'change':
             change_key_tokens = change_key.split('.')
 
@@ -115,14 +121,14 @@ def parse_diff(diff: List[Tuple]) -> ChangeSet:
             page_id, _, _ = change_key_tokens
             change = parse_change(change_value)
 
-            if page_id not in res["changed"]:
-                res["changed"][page_id] = []
+            changes[page_id].append(change)
 
-            res["changed"][page_id].append(change)
+    for page_id, change_list in changes.items():
+        res.changed.append((data[page_id], change_list))
 
     return res
 
-def parse_add_or_remove(delta: List[Tuple[str, Page]]) -> List[str]:
+def parse_add_or_remove(delta: List[Tuple[str, Page]]) -> List[Page]:
     """Parse the added or removed pages from a diff
 
     Args:
@@ -133,7 +139,8 @@ def parse_add_or_remove(delta: List[Tuple[str, Page]]) -> List[str]:
     """    
     res = []
     for _, page in delta:
-        res.append(page["properties"]["title"].value) 
+        res.append(page)
+        
     return res
 
 def parse_change(delta: Tuple[Property, Property]) -> PropertyChange:

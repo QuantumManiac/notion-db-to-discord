@@ -1,4 +1,5 @@
-from typing import Dict, List, TypedDict, NamedTuple
+from typing import Dict, List, Tuple, TypedDict, NamedTuple
+from dataclasses import dataclass
 
 Property = NamedTuple("Property", [("name", str), ("value", str)])
 
@@ -10,6 +11,7 @@ class Page(TypedDict):
     last_edited_time: str
     properties: Dict[str, Property]
     url: str
+    
 
 class PropertyChange(TypedDict):
     """Represents a change in a property
@@ -18,14 +20,17 @@ class PropertyChange(TypedDict):
     old_value: str
     new_value: str
 
-class ChangeSet(TypedDict):
+@dataclass
+class ChangeSet():
     """Represents a set of changes between two dictionaries
     """
-    added: List[str]
+    added: List[Page]
     """Pages that were added in the diff"""
-    removed: List[str]
+    removed: List[Page]
     """Pages that were removed in the diff"""
-    changed: Dict[str, List[PropertyChange]]
+    changed: List[Tuple[Page, List[PropertyChange]]]
     """Pages that had their properties changed in the diff. The key is the page id and the value is the list of 
     properties that were changed"""
-    
+
+    def is_empty(self) -> bool:
+        return len(self.added) == 0 and len(self.removed) == 0 and len(self.changed) == 0
