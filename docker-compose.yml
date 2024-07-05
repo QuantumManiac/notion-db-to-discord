@@ -6,3 +6,4 @@ services:
     volumes:
       - .:/usr/src/app
     command: python ./main.py
+    restart: always
