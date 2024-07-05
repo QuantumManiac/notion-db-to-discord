@@ -22,7 +22,13 @@ def generate_properties_text(page: Page) -> str:
     return "\n".join(lines)
 
 def generate_changes_text(changes: List[PropertyChange]) -> str:
-    lines = [f"{change['property_name']}: `{change['old_value']}` → `{change['new_value']}`" for change in changes]
+    lines = []
+
+    for change in changes:
+        old_change_text = f"`{change["old_value"]}`" if len(change["old_value"]) == 0 else "(None)"
+        new_change_text = f"`{change["new_value"]}`" if len(change["new_value"]) == 0 else "(None)"
+            
+        lines.append(f"{change['property_name']}: {old_change_text} → {new_change_text}")
 
     return "\n".join(lines)
 
