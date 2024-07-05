@@ -1,0 +1,8 @@
+services:
+  notion-discord-webhook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/app
+    command: python ./main.py

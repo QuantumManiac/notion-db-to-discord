@@ -27,6 +27,5 @@ jobs:
                         key: ${{ secrets.KEY }}
                         script: |
                             cd ${{ secrets.TARGET }}
-                            pip install -r requirements.txt
-                            pkill -f "${{ secrets.TARGET }}/main.py"
-                            nohup python ${{ secrets.TARGET }}/main.py > ${{ secrets.TARGET }}/main.log 2>&1 &
+                            docker-compose down
+                            docker-compose up -d
