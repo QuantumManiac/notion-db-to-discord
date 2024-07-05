@@ -27,8 +27,8 @@ class WebhookMessage():
     """Represents a Discord webhook message
     """
     embeds: List[WebhookEmbed]
-    username: str = os.environ['WEBHOOK_USERNAME']
-    avatar_url: str = os.environ['WEBHOOK_AVATAR_URL']
+    username: str = os.environ.get("WEBHOOK_USERNAME", "Webhook")
+    avatar_url: str = os.environ.get("WEBHOOK_AVATAR_URL", "")
 
     def to_json(self) -> Dict[str, Any]:
         json = {
