@@ -28,5 +28,4 @@ jobs:
                         script: |
                             cd ${{ secrets.TARGET }}
                             pip install -r requirements.txt
-                            tmux kill-session -t notion-discord-webhook || true
                             tmux new-session -d -s notion-discord-webhook "./start.sh"
