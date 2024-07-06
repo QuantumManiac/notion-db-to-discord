@@ -17,7 +17,17 @@ def generate_changeset_messages(changeset: ChangeSet) -> List[WebhookEmbed]:
     return res
     
 def generate_properties_text(page: Page) -> str:
-    lines = [f"{property.name}: `{property.value}`" for property in page["properties"].values()]
+    PROPERTIES_IGNORELIST = ["title"]
+    lines = []
+
+    for property in page["properties"].values():
+        if property.name in PROPERTIES_IGNORELIST:
+            continue
+        
+        if len(property.value) == 0:
+            lines.append(f"{property.name}: (None)")
+        else:
+            lines.append(f"{property.name}: `{property.value}`")
 
     return "\n".join(lines)
 
