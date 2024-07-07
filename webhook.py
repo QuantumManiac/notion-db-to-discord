@@ -1,7 +1,8 @@
 import requests
 import os
-from dataclasses import dataclass
-from typing import Dict, Any, List, TypedDict
+from dataclasses import dataclass, field
+from functools import partial
+from typing import Dict, Any, List
 
 @dataclass
 class WebhookEmbed():
@@ -28,8 +29,8 @@ class WebhookMessage():
     """
     embeds: List[WebhookEmbed]
 
-    username: str = os.environ.get('WEBHOOK_USERNAME', 'Webhook')
-    avatar_url: str = os.environ.get('WEBHOOK_AVATAR_URL', '')
+    username: str = field(default_factory=lambda: os.environ.get('WEBHOOK_USERNAME', 'Webhook'))
+    avatar_url: str = field(default_factory=lambda: os.environ.get('WEBHOOK_AVATAR_URL', ''))
 
     def to_json(self) -> Dict[str, Any]:
         json = {
