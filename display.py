@@ -17,11 +17,11 @@ def generate_changeset_messages(changeset: ChangeSet) -> List[WebhookEmbed]:
     return res
     
 def generate_properties_text(page: Page) -> str:
-    PROPERTIES_IGNORELIST = ["title"]
+    PROPERTY_ID_IGNORELIST = ["title"]
     lines = []
 
-    for property in page["properties"].values():
-        if property.name in PROPERTIES_IGNORELIST:
+    for property_id, property in page["properties"].items():
+        if property_id in PROPERTY_ID_IGNORELIST:
             continue
         
         if len(property.value) == 0:
