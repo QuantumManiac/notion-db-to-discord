@@ -2,18 +2,20 @@ from classes import ChangeSet, Page, PropertyChange
 from enum import Enum
 from typing import List, Dict, Tuple
 from webhook import WebhookEmbed
+from datetime import datetime, time
 
 class MessageColor(Enum):
     ADD = 0x44CC00
     REMOVE = 0xFF2A00
     CHANGE = 0xFFD000
     
-def generate_changeset_messages(changeset: ChangeSet) -> List[WebhookEmbed]:
-    # changed: List[Tuple[Page, List[PropertyChange]]]
+def generate_changeset_messages(changeset: ChangeSet, timeout: time) -> List[WebhookEmbed]:
     res = []
     res += generate_added_messages(changeset.added)
     res += generate_removed_messages(changeset.removed)
-    res += generate_changed_messages(changeset.changed)
+
+    # Change the logic for generate_changed_messages to check for timeout
+    res += generate_changed_messages(changeset.changed, timeout)
     return res
     
 def generate_properties_text(page: Page) -> str:
@@ -71,17 +73,28 @@ def generate_removed_messages(removals: List[Page]) -> List[WebhookEmbed]:
         
     return res
 
-def generate_changed_messages(pages: List[Tuple[Page, List[PropertyChange]]]) -> List[WebhookEmbed]:
+def generate_changed_messages(pages: List[Tuple[Page, List[PropertyChange], datetime]], timeout: time) -> List[WebhookEmbed]:
+    """Generate the messages for changed by checking if any pages are expired
+        If expired then add to the output message and remove the page from the queue
+    """
+
     res = []
 
-    for page, changes in pages:
-        message = WebhookEmbed(
-            title = f"Task Changed: {page['properties']['title'].value}",
-            url = page["url"],
-            description = generate_changes_text(changes),
-            color = MessageColor.CHANGE.value
-        )
+    for index, page, changes, timestamp in enumerate(reversed(pages)):
+        current_time = datetime.time.now()
+        time_delta = current_time - timestamp
+
+        if time_delta > timeout:
+            message = WebhookEmbed(
+                title = f"Task Changed: {page['properties']['title'].value}",
+                url = page["url"],
+                description = generate_changes_text(changes),
+                color = MessageColor.CHANGE.value
+            )
         
-        res.append(message)
+            res.append(message)
+
+            # Remove this change from the List of Changes
+            del pages[index] 
 
     return res
