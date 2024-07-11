@@ -1,10 +1,11 @@
-from typing import Dict, List, Tuple, TypedDict, NamedTuple
+from typing import Dict, List, Tuple, TypedDict, NamedTuple, override
 from dataclasses import dataclass
 from datetime import time, datetime
 
 Property = NamedTuple("Property", [("name", str), ("value", str)])
 
-class Page(TypedDict):
+@dataclass
+class Page():
     """Represents a Notion page
     """
     page_id: str
@@ -13,11 +14,10 @@ class Page(TypedDict):
     properties: Dict[str, Property]
     url: str
     
-
-    def eq(self, other):
-        """Compares page_id
-        """
-        return self.page_id == other.page_id
+    @override
+    def __hash__(self) -> int:
+        return hash(page_id)
+     
 
 class PropertyChange(TypedDict):
     """Represents a change in a property
@@ -34,7 +34,7 @@ class ChangeSet():
     """Pages that were added in the diff"""
     removed: List[Page]
     """Pages that were removed in the diff"""
-    changed: List[Tuple[Page, List[PropertyChange], datetime]]
+    changed: Dict[Page, Tuple[List[PropertyChange], datetime]]
     """Pages that had their properties changed in the diff. The key is the page id and the value is the list of 
     properties that were changed"""
 
@@ -49,13 +49,14 @@ class ChangeSet():
         self.added += other_changed_set.added
         self.removed += other_changed_set.removed
         
+        # For each change we check if its already in our dict
+        for page, (propertyList, timestamp) in other_changed_set.changed:
+            if page in self.changed:
+                new_timestamp = self.changed[page][1]
+                if timestamp > self.changed[page][1]:
+                    new_timestamp = timestamp
+                
+                self.changed[page] = (propertyList + self.changed[page][0], new_timestamp)
+            else:
+                self.changed[page] = (propertyList, timestamp)
 
-        # We compare if there are any changes in the same page and coalece
-        # Horribly underoptimized, we will get back to this later
-        for other_page, other_property_change_list, other_time in other_changed_set.changed:
-            for page, property_change_list, timestamp in self.changed:
-                if page == other_page:
-                    property_change_list += other_property_change_list
-                    # We should be able to assume that other_time > time
-                    if other_time > timestamp:
-                        timestamp = other_time

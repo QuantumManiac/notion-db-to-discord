@@ -9,13 +9,23 @@ class MessageColor(Enum):
     REMOVE = 0xFF2A00
     CHANGE = 0xFFD000
     
-def generate_changeset_messages(changeset: ChangeSet, timeout: time) -> List[WebhookEmbed]:
+def changeset_timeout(changeset: ChangeSet, timeout: time) -> List[WebhookEmbed]:
+    """Processes the changeSet on timeout by parsing the set into embeds and purging expired elements in the set
+    """
     res = []
     res += generate_added_messages(changeset.added)
     res += generate_removed_messages(changeset.removed)
 
-    # Change the logic for generate_changed_messages to check for timeout
-    res += generate_changed_messages(changeset.changed, timeout)
+    # List[Tuple[Page, List[PropertyChange]]]
+    list_of_pages_to_purge = check_timeout_on_changed(changeset.changed, timeout)
+    res += generate_changed_messages(list_of_pages_to_purge)
+
+    # Cleanup the existing changeSet
+    changeset.added = []
+    changeset.removed = []
+    for page, _ in list_of_pages_to_purge:
+        del changeset.changed[page]
+
     return res
     
 def generate_properties_text(page: Page) -> str:
@@ -73,28 +83,34 @@ def generate_removed_messages(removals: List[Page]) -> List[WebhookEmbed]:
         
     return res
 
-def generate_changed_messages(pages: List[Tuple[Page, List[PropertyChange], datetime]], timeout: time) -> List[WebhookEmbed]:
+def check_timeout_on_changed(changes: Dict[Page, Tuple[List[PropertyChange], datetime]], timeout: time) -> List[Tuple[Page, List[PropertyChange]]]:
+    res = []
+
+    current_time = datetime.now()
+    for page, changeTuple in changes.items():
+        # need to redo the time math here
+        time_delta = time(current_time - changeTuple[1])
+        
+        if time_delta > timeout:
+            res.append((page, changeTuple[0]))
+
+    return res
+        
+
+def generate_changed_messages(pages: List[Tuple[Page, List[PropertyChange]]]) -> List[WebhookEmbed]:
     """Generate the messages for changed by checking if any pages are expired
         If expired then add to the output message and remove the page from the queue
     """
 
     res = []
 
-    for index, page, changes, timestamp in enumerate(reversed(pages)):
-        current_time = datetime.time.now()
-        time_delta = current_time - timestamp
-
-        if time_delta > timeout:
-            message = WebhookEmbed(
-                title = f"Task Changed: {page['properties']['title'].value}",
-                url = page["url"],
-                description = generate_changes_text(changes),
-                color = MessageColor.CHANGE.value
-            )
-        
-            res.append(message)
-
-            # Remove this change from the List of Changes
-            del pages[index] 
+    message = WebhookEmbed(
+        title = f"Task Changed: {page['properties']['title'].value}",
+        url = page["url"],
+        description = generate_changes_text(changes),
+        color = MessageColor.CHANGE.value
+    )
+    
+    res.append(message)
 
     return res

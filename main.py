@@ -3,7 +3,7 @@ from notion_client import Client
 from typing import Dict
 from classes import ChangeSet, Page
 from webhook import generate_message, send_message
-from display import generate_changeset_messages
+from display import changeset_timeout 
 import os
 from utils import parse_db_query_response, identify_changes
 from time import sleep
@@ -54,7 +54,7 @@ def main():
             logger.info("Changes detected.")
         
         if not(changeset.is_empty()):
-            messages = generate_changeset_messages(changeset, timeout)
+            messages = changeset_timeout(changeset, timeout)
             message = generate_message(messages)
 
             # Expect message == "" if there is nothing returned from generate_message
