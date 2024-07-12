@@ -2,18 +2,30 @@ from classes import ChangeSet, Page, PropertyChange
 from enum import Enum
 from typing import List, Dict, Tuple
 from webhook import WebhookEmbed
+from datetime import datetime, timedelta
 
 class MessageColor(Enum):
     ADD = 0x44CC00
     REMOVE = 0xFF2A00
     CHANGE = 0xFFD000
     
-def generate_changeset_messages(changeset: ChangeSet) -> List[WebhookEmbed]:
-    # changed: List[Tuple[Page, List[PropertyChange]]]
+def changeset_timeout(changeset: ChangeSet, timeout: timedelta, data: Dict[str, Page]) -> List[WebhookEmbed]:
+    """Processes the changeSet on timeout by parsing the set into embeds and purging expired elements in the set
+    """
     res = []
     res += generate_added_messages(changeset.added)
     res += generate_removed_messages(changeset.removed)
-    res += generate_changed_messages(changeset.changed)
+
+    # List[Tuple[Page, List[PropertyChange]]]
+    list_of_pages_to_purge = check_timeout_on_changed(changeset.changed, timeout)
+    res += generate_changed_messages(list_of_pages_to_purge, data)
+
+    # Cleanup the existing changeSet
+    changeset.added = []
+    changeset.removed = []
+    for page_id, _ in list_of_pages_to_purge:
+        del changeset.changed[page_id]
+
     return res
     
 def generate_properties_text(page: Page) -> str:
@@ -71,10 +83,28 @@ def generate_removed_messages(removals: List[Page]) -> List[WebhookEmbed]:
         
     return res
 
-def generate_changed_messages(pages: List[Tuple[Page, List[PropertyChange]]]) -> List[WebhookEmbed]:
+def check_timeout_on_changed(changes: Dict[str, Tuple[List[PropertyChange], datetime]], timeout: timedelta) -> List[Tuple[str, List[PropertyChange]]]:
     res = []
 
-    for page, changes in pages:
+    current_time = datetime.now()
+    for page_id, (propertychange, timestamp) in changes.items():
+        time_delta = current_time - timestamp 
+        
+        if time_delta > timeout:
+            res.append((page_id, propertychange))
+
+    return res
+        
+
+def generate_changed_messages(pages: List[Tuple[str, List[PropertyChange]]], data: Dict[str, Page]) -> List[WebhookEmbed]:
+    """Generate the messages for changed by checking if any pages are expired
+        If expired then add to the output message and remove the page from the queue
+    """
+
+    res = []
+
+    for page_id, changes in pages:
+        page = data[page_id]
         message = WebhookEmbed(
             title = f"Task Changed: {page['properties']['title'].value}",
             url = page["url"],
