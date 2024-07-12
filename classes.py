@@ -16,7 +16,7 @@ class Page():
     
     @override
     def __hash__(self) -> int:
-        return hash(page_id)
+        return hash(self.page_id)
      
 
 class PropertyChange(TypedDict):
@@ -41,7 +41,7 @@ class ChangeSet():
     def is_empty(self) -> bool:
         return len(self.added) == 0 and len(self.removed) == 0 and len(self.changed) == 0
 
-    def merge_set(self, other_changed_set):
+    def merge_set(self, other_changed_set: ChangeSet):
         """merges the changes from the other set into the current set
         """
 
@@ -50,13 +50,13 @@ class ChangeSet():
         self.removed += other_changed_set.removed
         
         # For each change we check if its already in our dict
-        for page, (propertyList, timestamp) in other_changed_set.changed:
+        for page, (propertyList, timestamp) in other_changed_set.changed.items():
             if page in self.changed:
-                new_timestamp = self.changed[page][1]
-                if timestamp > self.changed[page][1]:
+                property_changes, new_timestamp = self.changed[page]
+                if timestamp > new_timestamp:
                     new_timestamp = timestamp
                 
-                self.changed[page] = (propertyList + self.changed[page][0], new_timestamp)
+                self.changed[page] = (propertyList + property_changes, new_timestamp)
             else:
                 self.changed[page] = (propertyList, timestamp)
 
