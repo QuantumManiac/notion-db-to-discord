@@ -104,8 +104,6 @@ def parse_diff(data: Dict[str, Page], diff: List[Tuple]) -> ChangeSet:
         changed={}
     ) 
 
-    # List[Tuple[Page, List[PropertyChange]]] 
-    # Dict[Page, Tuple[List[PropertyChange], datetime]]
     changes: Dict[str, List[PropertyChange]] = defaultdict(list) # A dictionary that maps the page_id to the list of changes
 
     change_type: Literal["add", "remove", "change"]
@@ -119,9 +117,8 @@ def parse_diff(data: Dict[str, Page], diff: List[Tuple]) -> ChangeSet:
             change_key_tokens = change_key.split('.')
             
             timestamp = datetime.now()
-            # I should be parsing the time here, but I will leave it till tonight to figure that out
+            # TODO: maybe use a timestamp here in this token?
             if len(change_key_tokens) <= 2: # We are only interested in changes to properties, not the page itself
-                #timestamp = datetime.fromisoformat(change_key_tokens[1])
                 continue
 
             page_id, _, _ = change_key_tokens
@@ -129,8 +126,9 @@ def parse_diff(data: Dict[str, Page], diff: List[Tuple]) -> ChangeSet:
 
             changes[page_id].append(change)
 
+            # changed: Dict[page_id, Tuple[List[PropertyChange], datetime]]
             for page_id, change_list in changes.items():
-                res.changed[data[page_id]] = (change_list, timestamp)
+                res.changed[page_id] = (change_list, timestamp)
 
     return res
 

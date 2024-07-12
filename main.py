@@ -7,7 +7,7 @@ from display import changeset_timeout
 import os
 from utils import parse_db_query_response, identify_changes
 from time import sleep
-from datetime import time
+from datetime import timedelta
 import logging
 import sys
 
@@ -37,10 +37,10 @@ def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     logger = logging.getLogger()
     polling_interval = int(os.environ.get("NOTION_POLLING_INTERVAL_SECONDS", 60))
-    timeout = time.fromisoformat('00:02:00')
+    timeout = timedelta(minutes=2)
     prev_state = []
     prev_state = get_state()
-    changeset = ChangeSet()
+    changeset = ChangeSet([], [], {})
 
     while True:
         new_state = get_state()
@@ -54,11 +54,12 @@ def main():
             logger.info("Changes detected.")
         
         if not(changeset.is_empty()):
-            messages = changeset_timeout(changeset, timeout)
+            messages = changeset_timeout(changeset, timeout, new_state)
             message = generate_message(messages)
 
             # Expect message == "" if there is nothing returned from generate_message
             if message != "":
+                logger.info("Message sent.")
                 send_message(message)
 
         prev_state = new_state
